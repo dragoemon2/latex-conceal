@@ -1,7 +1,7 @@
 import { TextRange } from './types';
 
 // 数式環境を検出するための正規表現
-const MATH_ENV_REGEX = /(?:\\begin\{((?:equation|align|alignat|flalign|multline|gather|math|displaymath)\*?)\}[\s\S]*?\\end\{\1\})|(?:\\\[[\s\S]*?\\\])|(?:\\\([\s\S]*?\\\))|(?:(?<!\\)\$\$[\s\S]*?(?<!\\)\$\$)|(?:(?<!\\)\$(?!\$)[\s\S]*?(?<!\\)\$)/g;
+const MATH_ENV_REGEX = /(?:\\begin\{((?:equation|align|alignat|flalign|multline|gather|math|displaymath|tikzcd)\*?)\}[\s\S]*?\\end\{\1\})|(?:\\\[[\s\S]*?\\\])|(?:\\\([\s\S]*?\\\))|(?:(?<!\\)\$\$[\s\S]*?(?<!\\)\$\$)|(?:(?<!\\)\$(?!\$)[\s\S]*?(?<!\\)\$)/g;
 
 /**
  * ドキュメント全体からすべての数式環境の範囲を抽出する

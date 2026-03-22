@@ -114,7 +114,7 @@ export function getConcealTokens(
     }
 
     // 4. 複数文字の下付き文字展開: _{012} -> ₀₁₂
-    const subRegex = /_\{([0-9+\-=()<>aeoxjhklmnpstiruv\u03B2\u03B3\u03C1\u03C6\u03C7\u2212]+)\}/g;
+    const subRegex = /_\{([0-9+\-=()<>aeoxjhklmnpstiruv]+)\}/g;
     while ((match = subRegex.exec(text)) !== null) {
         const inner = match[1];
         let replacement = '';
@@ -125,7 +125,7 @@ export function getConcealTokens(
     }
 
     // 5. 複数文字の上付き文字展開: ^{012} -> ⁰¹²
-    const supRegex = /\^\{([0-9+\-=()<>ABDEGHIJKLMNOPRTUWabcdefghijklmnoprstuvwxyz\u03B2\u03B3\u03B4\u03C6\u03C7\u222B\u2212]+)\}/g;
+    const supRegex = /\^\{([0-9+\-=()<>ABDEGHIJKLMNOPRTUWabcdefghijklmnoprstuvwxyz]+)\}/g;
     while ((match = supRegex.exec(text)) !== null) {
         const inner = match[1];
         let replacement = '';

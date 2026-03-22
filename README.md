@@ -38,7 +38,7 @@ Conceal is applied inside:
 - `\(...\)`
 - `\[...\]`
 - `\begin{equation}` ... `\end{equation}`
-- `align`, `alignat`, `flalign`, `multline`, `gather`, `math`, `displaymath` (including `*` variants)
+- `align`, `alignat`, `flalign`, `multline`, `gather`, `math`, `displaymath`, `tikzcd` (including `*` variants)
 
 ## Commands
 

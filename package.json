@@ -57,7 +57,9 @@
             "\\xrightarrow": "→",
             "\\xleftarrow": "←",
             "\\Im": "Im",
-            "\\Re": "Re"
+            "\\Re": "Re",
+            "\\left": "",
+            "\\right": ""
           }
         },
         "latex-conceal.revealBehavior": {
