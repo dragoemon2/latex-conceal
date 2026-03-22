@@ -62,3 +62,7 @@ This extension contributes the following settings:
 - Nested math environments are not handled correctly (e.g., `$ ... \text{ $ ... $ } ... $`).
 - Clicking the right side of a concealed glyph (e.g., `α`) may still place the caret on the left side of the original source token (e.g., `\alpha`). This is a limitation of decoration-based rendering.
 
+## Credits
+
+- The default LaTeX-to-Unicode mapping data is based on [unicodeit](https://github.com/svenkreiss/unicodeit) (MIT License).
+- Inspired by Vim's conceal feature and similar extensions.

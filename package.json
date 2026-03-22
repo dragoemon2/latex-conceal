@@ -3,6 +3,7 @@
   "displayName": "LaTeX Conceal",
   "description": "",
   "version": "0.0.1",
+  "publisher": "dragoemon",
   "repository": {
     "type": "git",
     "url": "https://github.com/dragoemon2/latex-conceal.git"
