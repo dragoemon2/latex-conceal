@@ -1,0 +1,97 @@
+{
+  "name": "latex-conceal",
+  "displayName": "LaTeX Conceal",
+  "description": "",
+  "version": "0.0.1",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dragoemon2/latex-conceal.git"
+  },
+  "engines": {
+    "vscode": "^1.110.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "latex-conceal.toggle",
+        "title": "LaTeX Conceal: Toggle (UI only)"
+      }
+    ],
+    "configuration": {
+      "title": "LaTeX Conceal",
+      "properties": {
+        "latex-conceal.enable": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable or disable LaTeX conceal rendering."
+        },
+        "latex-conceal.targetLanguageIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "latex",
+            "tex",
+            "markdown"
+          ],
+          "description": "Language IDs where conceal rendering is applied (for example: latex, tex, markdown)."
+        },
+        "latex-conceal.customReplacements": {
+          "type": "object",
+          "description": "Custom replacement mappings that are merged with the default LaTeX-to-Unicode table.",
+          "default": {
+            "\\Z": "ℤ",
+            "\\Q": "ℚ",
+            "\\R": "ℝ",
+            "\\C": "ℂ",
+            "\\N": "ℕ",
+            "\\xrightarrow": "→",
+            "\\xleftarrow": "←",
+            "\\Im": "Im",
+            "\\Re": "Re"
+          }
+        },
+        "latex-conceal.revealBehavior": {
+          "type": "string",
+          "enum": ["token", "environment", "line"],
+          "default": "environment",
+          "description": "Controls how much concealed content is revealed around the cursor: token, environment, or line."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run package",
+    "compile": "npm run check-types && npm run lint && node esbuild.js",
+    "watch": "npm-run-all -p watch:*",
+    "watch:esbuild": "node esbuild.js --watch",
+    "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
+    "package": "npm run check-types && npm run lint && node esbuild.js --production",
+    "compile-tests": "tsc -p . --outDir out",
+    "watch-tests": "tsc -p . -w --outDir out",
+    "pretest": "npm run compile-tests && npm run compile && npm run lint",
+    "check-types": "tsc --noEmit",
+    "lint": "eslint src",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.110.0",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "22.x",
+    "typescript-eslint": "^8.56.1",
+    "eslint": "^9.39.3",
+    "esbuild": "^0.27.3",
+    "npm-run-all": "^4.1.5",
+    "typescript": "^5.9.3",
+    "@vscode/test-cli": "^0.0.12",
+    "@vscode/test-electron": "^2.5.2"
+  }
+}
