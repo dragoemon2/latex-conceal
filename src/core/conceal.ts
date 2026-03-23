@@ -3,15 +3,46 @@ import { ConcealConfig, ConcealToken, TextRange } from './types';
 
 // 置換ルールを取得
 export function initializeConcealConfig(customReplacements: Record<string, string> = {}): ConcealConfig {
-    const mergedReplacements = { ...replaceData.REPLACEMENTS, ...customReplacements };
-    const sortedReplacements = Object.entries(mergedReplacements).sort((a, b) => b[0].length - a[0].length);
+    const replacements = new Map(Object.entries({ ...replaceData.REPLACEMENTS, ...customReplacements }));
+    const keys = Array.from(replacements.keys()).sort((a, b) => b.length - a.length);
+
+    const createRegexPart = (key: string) => {
+        const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        if (/[a-zA-Z]$/.test(key)) {
+            return escaped + '(?![a-zA-Z])';
+        }
+        return escaped;
+    };
+
+
+    // REPLACEMENTSのキーを長い順に正規表現化してまとめる 
+    // これでなぜか80倍くらい速くなる
+    const regexes: RegExp[] = [];
+    const keysByLength = new Map<number, string[]>();
+    for (const key of keys) {
+        const len = key.length;
+        const bucket = keysByLength.get(len);
+        if (bucket) {
+            bucket.push(key);
+        } else {
+            keysByLength.set(len, [key]);
+        }
+    }
+    const lengthsDesc = Array.from(keysByLength.keys()).sort((a, b) => b - a);
+    for (const len of lengthsDesc) {
+        const keysInLength = keysByLength.get(len) ?? [];
+        const parts = keysInLength.map(createRegexPart);
+        regexes.push(new RegExp(`(${parts.join('|')})`, 'g'));
+    }
     
     return {
-        replacements: new Map(sortedReplacements),
+        replacements: replacements,
         combiningMarks: new Map(Object.entries(replaceData.COMBININGMARKS)),
         subSuperscripts: new Map(Object.entries(replaceData.SUBSUPERSCRIPTS)),
+        replacementRegexes: regexes,
     };
 }
+
 
 /**
  * テキスト全体から置換トークンのリストを生成する
@@ -25,6 +56,7 @@ export function getConcealTokens(
     config: ConcealConfig,
     ranges?: TextRange[]
 ): ConcealToken[] {
+    const startTime = performance.now();
     const tokens: ConcealToken[] = [];
 
     const handled = new Uint8Array(text.length); // 重複マッチを防ぐ
@@ -65,17 +97,22 @@ export function getConcealTokens(
         return res;
     };
 
+    let step1Time = 0, step2Time = 0, step3Time = 0, step4Time = 0, step5Time = 0, step6Time = 0;
+    let match;
+
     // 1. \not\XXX の処理 (例: \not\subset)
+    let s1 = performance.now();
     const slashChar = config.combiningMarks.get('\\slash') || '\u0338';
     const notRegex = /\\not(\\[a-zA-Z]+)/g;
-    let match;
     while ((match = notRegex.exec(text)) !== null) {
         const innerCmd = match[1];
         const innerRepl = config.replacements.get(innerCmd) || innerCmd;
         addToken(match.index, match.index + match[0].length, innerRepl + slashChar);
     }
+    step1Time = performance.now() - s1;
 
     // 2. Combining marks の処理 (例: \vec{a})
+    let s2 = performance.now();
     for (const [cmd, mark] of config.combiningMarks) {
         // 正規表現用にエスケープ (\vec -> \\vec)
         const escapedCmd = cmd.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -100,20 +137,25 @@ export function getConcealTokens(
             }
         }
     }
+    step2Time = performance.now() - s2;
 
     // 3. 通常の REPLACEMENTS の処理
-    for (const [key, val] of config.replacements) {
-        let index = 0;
-        while ((index = text.indexOf(key, index)) !== -1) {
-            // \newcommand -> ≠wcommand の問題を回避
-            if (!(/[a-zA-Z]$/.test(key) && /[a-zA-Z]/.test(text[index + key.length] || ''))) {
-                addToken(index, index + key.length, val);
+    let s3 = performance.now();
+    for (const regex of config.replacementRegexes) {
+        regex.lastIndex = 0;
+        while ((match = regex.exec(text)) !== null) {
+            const matchedKey = match[1];
+            const val = config.replacements.get(matchedKey);
+            if (val) {
+                addToken(match.index, match.index + matchedKey.length, val);
             }
-            index += key.length;
         }
     }
+    step3Time = performance.now() - s3;
+    const step3SubLog = `regexCount: ${config.replacementRegexes.length}`;
 
     // 4. 複数文字の下付き文字展開: _{012} -> ₀₁₂
+    let s4 = performance.now();
     const subRegex = /_\{([0-9+\-=()<>aeoxjhklmnpstiruv]+)\}/g;
     while ((match = subRegex.exec(text)) !== null) {
         const inner = match[1];
@@ -123,8 +165,10 @@ export function getConcealTokens(
         }
         addToken(match.index, match.index + match[0].length, replacement);
     }
+    step4Time = performance.now() - s4;
 
     // 5. 複数文字の上付き文字展開: ^{012} -> ⁰¹²
+    let s5 = performance.now();
     const supRegex = /\^\{([0-9+\-=()<>ABDEGHIJKLMNOPRTUWabcdefghijklmnoprstuvwxyz]+)\}/g;
     while ((match = supRegex.exec(text)) !== null) {
         const inner = match[1];
@@ -134,8 +178,10 @@ export function getConcealTokens(
         }
         addToken(match.index, match.index + match[0].length, replacement);
     }
+    step5Time = performance.now() - s5;
 
     // 6. 単体の SUBSUPERSCRIPTS の処理 (例: _0, ^1)
+    let s6 = performance.now();
     for (const [key, val] of config.subSuperscripts) {
         let index = 0;
         while ((index = text.indexOf(key, index)) !== -1) {
@@ -143,9 +189,17 @@ export function getConcealTokens(
             index += key.length;
         }
     }
+    step6Time = performance.now() - s6;
 
     // 最後にテキストの出現順（startの昇順）にソートして返す
-    return tokens.sort((a, b) => a.start - b.start);
+    const sortStart = performance.now();
+    const sorted = tokens.sort((a, b) => a.start - b.start);
+    const sortTime = performance.now() - sortStart;
+
+    const totalTime = performance.now() - startTime;
+    console.log(`[getConcealTokens] Total: ${totalTime.toFixed(2)}ms | \\not: ${step1Time.toFixed(2)}ms | combining: ${step2Time.toFixed(2)}ms | replacements: ${step3Time.toFixed(2)}ms (${step3SubLog}) | subscript: ${step4Time.toFixed(2)}ms | superscript: ${step5Time.toFixed(2)}ms | subsuperscripts: ${step6Time.toFixed(2)}ms | sort: ${sortTime.toFixed(2)}ms`);
+
+    return sorted;
 }
 
 // 置換トークンを適用して最終的なテキストを生成する
@@ -163,4 +217,3 @@ export function applyConcealTokensToText(text: string, tokens: ConcealToken[]): 
     result += text.slice(lastIndex);
     return result;
 }
-

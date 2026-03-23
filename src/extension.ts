@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { getConcealTokens, initializeConcealConfig } from './core/conceal';
 import { getAllMathEnvs } from './core/mathenv';
 import { getRevealRanges } from './core/reveal';
+import { shiftConcealTokens } from './core/shift_conceal';
 import { AppConfig } from './core/types';
 import { applyConceal, updateDecorationStyle } from './decorator';
 import { getCache, getConfig, setCache, setConfig } from './stateManager';
@@ -42,20 +43,26 @@ export function activate(context: vscode.ExtensionContext) {
         triggerFullParse(vscode.window.activeTextEditor);
     }
 
-    // テキスト編集時 (Debounceありの完全再パース)
+    // テキスト編集時 
     // もし重いようなら部分的な更新ロジックに切り替えることも検討（例: 変更された行だけ再パース）
     context.subscriptions.push(
         vscode.workspace.onDidChangeTextDocument(event => {
             const editor = vscode.window.activeTextEditor;
             // アクティブなエディタの変更のみを処理する
-            if (editor && event.document === editor.document) {
-                if (debounceTimeout) {
-                    clearTimeout(debounceTimeout);
-                }
-                // 300ms待ってからパースを実行
-                debounceTimeout = setTimeout(() => {
-                    triggerFullParse(editor);
-                }, 300);
+            if (editor && event.document === editor.document && event.contentChanges.length > 0) {
+                // 必要ならtriggerShiftTokens(editor, event);を追加して変更部分に応じたトークンのシフト処理を行うことも可能
+
+                // // Debounceをかけて再パース
+                // if (debounceTimeout) {
+                //     clearTimeout(debounceTimeout);
+                // }
+                // // 100ms待ってからパースを実行（入力時のずれを最小化）
+                // debounceTimeout = setTimeout(() => {
+                //     triggerFullParse(editor);
+                // }, 0);
+
+                // Debounceなしで即時にフルパースを実行 (高速化により可能になった)
+                triggerFullParse(editor);
             }
         })
     );
@@ -118,6 +125,39 @@ function loadAndApplyConfig() {
     };
 
     setConfig(appConfig);
+}
+
+/** 
+ * full parseを始める前に，一旦変更された部分のトークンをずらす（Shift）
+ * ⚠️ This function is not used in the current implementation
+ */
+function triggerShiftTokens(editor: vscode.TextEditor, event: vscode.TextDocumentChangeEvent) {
+    const document = editor.document;
+    const config = getConfig();
+
+    if (!config.enable || !isTargetLanguage(document, config)) {
+        return;
+    }
+
+    const cache = getCache();
+
+    // 実際の変更内容から、挿入/削除の情報を取得
+    const change = event.contentChanges[0]; // 通常は1件のみ
+    const changeStart = document.offsetAt(change.range.start);
+    const insertedLength = change.text.length;
+    const deletedLength = change.rangeLength;
+    const netShift = insertedLength - deletedLength; // 実際のシフト量（負数の場合は削除）
+
+    console.log(`Change detected at offset ${changeStart}: inserted ${insertedLength} chars, deleted ${deletedLength} chars, net shift ${netShift}`);
+    
+    // トークンをシフト
+    const shiftedTokens = shiftConcealTokens(cache, changeStart, netShift);
+
+    const cursorOffsets = editor.selections.map(sel => document.offsetAt(sel.active));
+    const text = document.getText();
+
+    const revealRanges = getRevealRanges(text, cursorOffsets, shiftedTokens, config.reveal);
+    applyConceal(editor, shiftedTokens, revealRanges);
 }
 
 /**

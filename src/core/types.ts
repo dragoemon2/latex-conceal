@@ -1,3 +1,8 @@
+export interface TextPoint {
+    ln: number; // 0-based line number
+    col: number; // 0-based column number
+}
+
 // テキストの範囲を表すインターフェース
 export interface TextRange {
     start: number;
@@ -14,6 +19,7 @@ export interface ConcealConfig {
     replacements: Map<string, string>;
     combiningMarks: Map<string, string>;
     subSuperscripts: Map<string, string>;
+    replacementRegexes: RegExp[];
 }
 
 // revealのルールをまとめたコンフィグ

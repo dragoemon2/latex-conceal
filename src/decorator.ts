@@ -18,7 +18,9 @@ export function updateDecorationStyle() {
     concealDecorationType = vscode.window.createTextEditorDecorationType({
         // 元のテキスト（例: \alpha）を見えなくする
         color: 'transparent',
-        textDecoration: 'none; font-size: 0px;', 
+        textDecoration: 'none; font-size: 0px;',
+        // テキスト挿入時に範囲がずれるのを防ぐため、ClosedClosedを指定
+        rangeBehavior: vscode.DecorationRangeBehavior.ClosedClosed,
         
         before: {
             // 置換後の文字（例: α）の色を設定
