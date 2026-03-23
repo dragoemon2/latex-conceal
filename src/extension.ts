@@ -5,9 +5,12 @@ import { getRevealRanges } from './core/reveal';
 import { AppConfig, ConcealToken } from './core/types';
 import { applyConceal, updateDecorationStyle } from './decorator';
 
-
+// extensionの設定
 let currentConfig: AppConfig | undefined;
+
+// 置換トークンのキャッシュ
 const concealCacheByDocument = new Map<string, ConcealToken[]>();
+
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('LaTeX Conceal is now active!');

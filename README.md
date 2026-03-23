@@ -6,11 +6,11 @@ LaTeX Conceal replaces common LaTeX math commands with Unicode glyphs directly i
 
 ### Before
 
-![Before](image/before.png)
+![Before](images/before.png)
 
 ### After
 
-![After](image/after.png)
+![After](images/after.png)
 
 
 In math mode:
