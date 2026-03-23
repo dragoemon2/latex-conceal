@@ -2,13 +2,14 @@ import * as vscode from 'vscode';
 import { getConcealTokens, initializeConcealConfig } from './core/conceal';
 import { getAllMathEnvs } from './core/mathenv';
 import { getRevealRanges } from './core/reveal';
-import { shiftConcealTokens } from './core/shift_conceal';
-import { AppConfig } from './core/types';
+import { AppConfig, ConcealToken } from './core/types';
 import { applyConceal, updateDecorationStyle } from './decorator';
-import { getCache, getConfig, setCache, setConfig } from './stateManager';
 
 // タイピング時の遅延実行（Debounce）用タイマー
 let debounceTimeout: NodeJS.Timeout | undefined;
+
+let currentConfig: AppConfig | undefined;
+const concealCacheByDocument = new Map<string, ConcealToken[]>();
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('LaTeX Conceal is now active!');
@@ -23,9 +24,9 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         vscode.commands.registerCommand('latex-conceal.toggle', () => {
             // トグルのON/OFFを切り替える
-            const config = getConfig();
+            const config = requireConfig();
             const newEnableState = !config.enable;
-            setConfig({ ...config, enable: newEnableState });
+            currentConfig = { ...config, enable: newEnableState };
             statusBarToggle.text = `$(eye) Conceal: ${newEnableState ? 'ON' : 'OFF'}`;
             // トグル後すぐに現在のエディタに反映させる
             if (vscode.window.activeTextEditor) {
@@ -46,22 +47,10 @@ export function activate(context: vscode.ExtensionContext) {
     // テキスト編集時 
     // もし重いようなら部分的な更新ロジックに切り替えることも検討（例: 変更された行だけ再パース）
     context.subscriptions.push(
-        vscode.workspace.onDidChangeTextDocument(event => {
+        vscode.workspace.onDidChangeTextDocument(async event => {
             const editor = vscode.window.activeTextEditor;
             // アクティブなエディタの変更のみを処理する
             if (editor && event.document === editor.document && event.contentChanges.length > 0) {
-                // 必要ならtriggerShiftTokens(editor, event);を追加して変更部分に応じたトークンのシフト処理を行うことも可能
-
-                // // Debounceをかけて再パース
-                // if (debounceTimeout) {
-                //     clearTimeout(debounceTimeout);
-                // }
-                // // 100ms待ってからパースを実行（入力時のずれを最小化）
-                // debounceTimeout = setTimeout(() => {
-                //     triggerFullParse(editor);
-                // }, 0);
-
-                // Debounceなしで即時にフルパースを実行 (高速化により可能になった)
                 triggerFullParse(editor);
             }
         })
@@ -100,11 +89,17 @@ export function activate(context: vscode.ExtensionContext) {
             }
         })
     );
+
+    context.subscriptions.push(
+        vscode.workspace.onDidCloseTextDocument(document => {
+            concealCacheByDocument.delete(document.uri.toString());
+        })
+    );
 }
 
 
 /**
- * VSCodeの設定を読み込み、StateManagerに注入する
+ * VSCodeの設定を読み込み、拡張内の状態へ反映する
  */
 function loadAndApplyConfig() {
     const config = vscode.workspace.getConfiguration('latex-conceal');
@@ -124,40 +119,7 @@ function loadAndApplyConfig() {
         }
     };
 
-    setConfig(appConfig);
-}
-
-/** 
- * full parseを始める前に，一旦変更された部分のトークンをずらす（Shift）
- * ⚠️ This function is not used in the current implementation
- */
-function triggerShiftTokens(editor: vscode.TextEditor, event: vscode.TextDocumentChangeEvent) {
-    const document = editor.document;
-    const config = getConfig();
-
-    if (!config.enable || !isTargetLanguage(document, config)) {
-        return;
-    }
-
-    const cache = getCache();
-
-    // 実際の変更内容から、挿入/削除の情報を取得
-    const change = event.contentChanges[0]; // 通常は1件のみ
-    const changeStart = document.offsetAt(change.range.start);
-    const insertedLength = change.text.length;
-    const deletedLength = change.rangeLength;
-    const netShift = insertedLength - deletedLength; // 実際のシフト量（負数の場合は削除）
-
-    console.log(`Change detected at offset ${changeStart}: inserted ${insertedLength} chars, deleted ${deletedLength} chars, net shift ${netShift}`);
-    
-    // トークンをシフト
-    const shiftedTokens = shiftConcealTokens(cache, changeStart, netShift);
-
-    const cursorOffsets = editor.selections.map(sel => document.offsetAt(sel.active));
-    const text = document.getText();
-
-    const revealRanges = getRevealRanges(text, cursorOffsets, shiftedTokens, config.reveal);
-    applyConceal(editor, shiftedTokens, revealRanges);
+    currentConfig = appConfig;
 }
 
 /**
@@ -165,12 +127,13 @@ function triggerShiftTokens(editor: vscode.TextEditor, event: vscode.TextDocumen
  */
 function triggerFullParse(editor: vscode.TextEditor) {
     const document = editor.document;
-    const config = getConfig();
+    const config = requireConfig();
+    const documentKey = document.uri.toString();
     
 
     if (!config.enable || !isTargetLanguage(document, config)) {
         // Conceal機能が無効な場合はキャッシュをクリアして装飾も消す
-        setCache([]);
+        concealCacheByDocument.set(documentKey, []);
         applyConceal(editor, [], []);
         return;
     }
@@ -184,7 +147,7 @@ function triggerFullParse(editor: vscode.TextEditor) {
     const concealTokens = getConcealTokens(text, config.conceal, mathRanges);
     
     // 3. 状態を更新 (Storeに保存)
-    setCache(concealTokens);
+    concealCacheByDocument.set(documentKey, concealTokens);
 
     // 4. 新しいキャッシュと現在のカーソル位置をもとに画面を更新
     applyDecorationForEditor(editor);
@@ -195,13 +158,13 @@ function triggerFullParse(editor: vscode.TextEditor) {
  */
 function applyDecorationForEditor(editor: vscode.TextEditor) {
     const document = editor.document;
-    const config = getConfig();
+    const config = requireConfig();
 
     if (!isTargetLanguage(document, config)) {
         return;
     }
 
-    const cache = getCache();
+    const cache = concealCacheByDocument.get(document.uri.toString()) ?? [];
 
     // 1. カーソル位置（複数対応）をオフセット数値の配列に変換
     const cursorOffsets = editor.selections.map(sel => document.offsetAt(sel.active));
@@ -225,4 +188,11 @@ export function deactivate() {
 function isTargetLanguage(document: vscode.TextDocument, config: AppConfig): boolean {
     const languageId = document.languageId.toLowerCase();
     return config.targetLanguageIds.includes(languageId);
+}
+
+function requireConfig(): AppConfig {
+    if (!currentConfig) {
+        throw new Error('Config is not initialized!');
+    }
+    return currentConfig;
 }
