@@ -5,8 +5,6 @@ import { getRevealRanges } from './core/reveal';
 import { AppConfig, ConcealToken } from './core/types';
 import { applyConceal, updateDecorationStyle } from './decorator';
 
-// タイピング時の遅延実行（Debounce）用タイマー
-let debounceTimeout: NodeJS.Timeout | undefined;
 
 let currentConfig: AppConfig | undefined;
 const concealCacheByDocument = new Map<string, ConcealToken[]>();
@@ -179,9 +177,7 @@ function applyDecorationForEditor(editor: vscode.TextEditor) {
 
 // 拡張機能が非アクティブになる時のクリーンアップ処理
 export function deactivate() {
-    if (debounceTimeout) {
-        clearTimeout(debounceTimeout);
-    }
+
 }
 
 // ドキュメントの言語IDが対象かどうかを判定する
