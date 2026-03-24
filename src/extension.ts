@@ -25,10 +25,11 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         vscode.commands.registerCommand('latex-conceal.toggle', () => {
             // トグルのON/OFFを切り替える
-            const config = requireConfig();
-            const newEnableState = !config.enable;
-            currentConfig = { ...config, enable: newEnableState };
-            statusBarToggle.text = `$(eye) Conceal: ${newEnableState ? 'ON' : 'OFF'}`;
+            if (!currentConfig) {
+                return;
+            }
+            currentConfig.enable = !currentConfig.enable;
+            statusBarToggle.text = `$(eye) Conceal: ${currentConfig.enable ? 'ON' : 'OFF'}`;
             // トグル後すぐに現在のエディタに反映させる
             if (vscode.window.activeTextEditor) {
                 triggerFullParse(vscode.window.activeTextEditor);
@@ -37,8 +38,8 @@ export function activate(context: vscode.ExtensionContext) {
     );
 
     // 初期化処理：設定の読み込みとスタイルの構築
-    loadAndApplyConfig();
-    updateDecorationStyle();
+    currentConfig = loadConfig();
+    updateDecorationStyle(currentConfig);
 
     // 現在開いているエディタがあれば即座にパースして適用
     if (vscode.window.activeTextEditor) {
@@ -81,8 +82,8 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         vscode.workspace.onDidChangeConfiguration(event => {
             if (event.affectsConfiguration('latex-conceal')) {
-                loadAndApplyConfig();
-                updateDecorationStyle(); // 色などが変わったかもしれないのでスタイルも再構築
+                currentConfig = loadConfig();
+                updateDecorationStyle(currentConfig); // 色などが変わったかもしれないのでスタイルも再構築
                 
                 if (vscode.window.activeTextEditor) {
                     triggerFullParse(vscode.window.activeTextEditor);
@@ -100,9 +101,9 @@ export function activate(context: vscode.ExtensionContext) {
 
 
 /**
- * VSCodeの設定を読み込み、拡張内の状態へ反映する
+ * VSCodeの設定を読み込む
  */
-function loadAndApplyConfig() {
+function loadConfig(): AppConfig {
     const config = vscode.workspace.getConfiguration('latex-conceal');
 
     const concealConfig = initializeConcealConfig(config.get<Record<string, string>>('customReplacements', {}));
@@ -111,16 +112,15 @@ function loadAndApplyConfig() {
         .map(languageId => languageId.trim().toLowerCase())
         .filter(languageId => languageId.length > 0);
 
-    const appConfig: AppConfig = {
+    return {
         enable: config.get<boolean>('enable', true),
         targetLanguageIds,
         conceal: concealConfig,
         reveal: {
             revealBehavior: config.get<'token' | 'environment' | 'line'>('revealBehavior', 'environment')
-        }
+        },
+        replacementColor: config.get<string>('replacementColor', 'editor.foreground').trim()
     };
-
-    currentConfig = appConfig;
 }
 
 /**
@@ -167,14 +167,14 @@ function applyDecorationForEditor(editor: vscode.TextEditor) {
 
     const cache = concealCacheByDocument.get(document.uri.toString()) ?? [];
 
-    // 1. カーソル位置（複数対応）をオフセット数値の配列に変換
+    // カーソル位置（複数対応）をオフセット数値の配列に変換
     const cursorOffsets = editor.selections.map(sel => document.offsetAt(sel.active));
     const text = document.getText();
 
-    // 2. 展開（Reveal）すべき範囲を純粋なロジックで計算
+    // Reveal すべき範囲を純粋なロジックで計算
     const revealRanges = getRevealRanges(text, cursorOffsets, cache, config.reveal);
 
-    // 3. 計算結果をもとにVSCodeエディタへ装飾を適用！
+    // 計算結果をもとにエディタへ装飾を適用！
     applyConceal(editor, cache, revealRanges);
 }
 

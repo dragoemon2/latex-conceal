@@ -32,4 +32,5 @@ export interface AppConfig {
     targetLanguageIds: string[]; // Concealを適用する言語ID一覧
     conceal: ConcealConfig; // 置換ルールのコンフィグ
     reveal: RevealConfig; // 展開ルールのコンフィグ
+    replacementColor: string; // 置換後の文字の色（オプション）
 }

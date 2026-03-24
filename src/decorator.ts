@@ -1,14 +1,31 @@
 import * as vscode from 'vscode';
-import { ConcealToken, TextRange } from './core/types';
+import { AppConfig, ConcealToken, TextRange } from './core/types';
 
 
 // 装飾オブジェクトを保持する変数
 let concealDecorationType: vscode.TextEditorDecorationType | undefined;
 
+function resolveReplacementColor(config: AppConfig): string | vscode.ThemeColor {
+    if (config.replacementColor.includes('.')) {
+        return new vscode.ThemeColor(config.replacementColor);
+    }
+
+    if (/^#([0-9A-F]{3}){1,2}$/i.test(config.replacementColor)) {
+        return config.replacementColor;
+    }
+
+    console.warn(`Invalid replacementColor "${config.replacementColor}" in config. Falling back to default theme color.`);
+    return new vscode.ThemeColor('editor.foreground');
+}
+
 /**
  * 装飾のスタイルを初期化・更新する
  */
-export function updateDecorationStyle() {
+export function updateDecorationStyle(config: AppConfig | undefined) {
+    if (!config) {
+        return;
+    }
+
     // 古いスタイルが残っていたら破棄（メモリリーク防止）
     if (concealDecorationType) {
         concealDecorationType.dispose();
@@ -24,7 +41,7 @@ export function updateDecorationStyle() {
         
         before: {
             // 置換後の文字（例: α）の色を設定
-            color: new vscode.ThemeColor('editor.foreground'),
+            color: resolveReplacementColor(config),
             // 擬似要素として表示するため，元の文字サイズに戻す
             textDecoration: 'none; font-size: var(--vscode-editor-font-size);',
         }

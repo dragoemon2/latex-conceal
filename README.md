@@ -56,6 +56,8 @@ This extension contributes the following settings:
 	- Adds or overrides replacement mappings.
 - `latex-conceal.revealBehavior` (`token` | `environment` | `line`, default: `environment`)
 	- Controls how much text is revealed when the cursor is inside concealed content.
+- `latex-conceal.replacementColor` (string, default: `editor.foreground`)
+	- Color for replacement glyphs. Accepts a theme color key (e.g. `editor.foreground`) or a CSS color string (e.g. `#c678dd`).
 
 ## Known Issues
 
