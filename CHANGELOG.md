@@ -8,6 +8,15 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 - No unreleased changes yet.
 
+## [0.2.1] - 2026-03-25
+
+### Added
+- Added MIT license information.
+- Added Japanese translation of README.
+
+### Changed
+- Made README stylish with emojis and formatting.
+
 ## [0.2.0] - 2026-03-25
 
 ### Added
