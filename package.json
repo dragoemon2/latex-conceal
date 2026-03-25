@@ -1,8 +1,8 @@
 {
   "name": "latex-conceal",
   "displayName": "LaTeX Conceal",
-  "description": "",
-  "version": "0.2.1",
+  "description": "Display LaTeX math commands as Unicode glyphs in VS Code without modifying source text.",
+  "version": "0.2.2",
   "license": "MIT",
   "publisher": "dragoemon",
   "icon": "images/icon1024x1024.png",
