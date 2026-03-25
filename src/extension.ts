@@ -101,10 +101,13 @@ export function deactivate() {
 
 }
 
+// setting.jsonから設定を読み込み，AppConfigオブジェクトを構築する．
 function loadConfig(): AppConfig {
     const config = vscode.workspace.getConfiguration('latex-conceal');
 
+    // カスタム置換ルールなどを使ってConcealConfig(置換のための正規表現オブジェクトを含む)を初期化 (前処理)
     const concealConfig = initializeConcealConfig(config.get<Record<string, string>>('customReplacements', {}));
+    
     const targetLanguageIds = config
         .get<string[]>('targetLanguageIds', ['latex', 'tex'])
         .map(languageId => languageId.trim().toLowerCase())
