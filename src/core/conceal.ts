@@ -43,6 +43,55 @@ export function initializeConcealConfig(customReplacements: Record<string, strin
     };
 }
 
+/** 
+ * newcommand, renewcommand, DeclareMathOperator から置換ルールを抽出する
+ */
+export function loadCustomReplacementsFromDocument(text: string, config: ConcealConfig): Record<string, string> {
+    const customReplacements: Record<string, string> = {};
+    const commandRegex = /\\(?:re)?newcommand\*?\s*{\\([a-zA-Z]+)}\s*(?:\[[^\]]*\])?\s*{/g;
+    const operatorRegex = /\\DeclareMathOperator\*?\s*{\\([a-zA-Z]+)}\s*{/g;
+
+    // ネストした波括弧を正しく読み取る
+    const readBalancedGroup = (source: string, openBraceIndex: number): string | null => {
+        if (openBraceIndex < 0 || openBraceIndex >= source.length || source[openBraceIndex] !== '{') {
+            return null;
+        }
+        let depth = 0;
+        for (let i = openBraceIndex; i < source.length; i++) {
+            const ch = source[i];
+            if (ch === '{') {
+                depth++;
+            } else if (ch === '}') {
+                depth--;
+                if (depth === 0) {
+                    return source.slice(openBraceIndex + 1, i);
+                }
+            }
+        }
+        return null;
+    };
+
+    let match;
+    while ((match = commandRegex.exec(text)) !== null) {
+        const cmdName = '\\' + match[1];
+        const bodyOpenBraceIndex = commandRegex.lastIndex - 1;
+        const cmdDef = readBalancedGroup(text, bodyOpenBraceIndex);
+        if (cmdDef === null) {
+            continue;
+        }
+        customReplacements[cmdName] = applyConcealTokensToText(cmdDef, getConcealTokens(cmdDef, config));
+    }
+    while ((match = operatorRegex.exec(text)) !== null) {
+        const opName = '\\' + match[1];
+        const bodyOpenBraceIndex = operatorRegex.lastIndex - 1;
+        const opDef = readBalancedGroup(text, bodyOpenBraceIndex);
+        if (opDef === null) {
+            continue;
+        }
+        customReplacements[opName] = applyConcealTokensToText(opDef, getConcealTokens(opDef, config));
+    }
+    return customReplacements;
+}
 
 /**
  * テキスト全体から置換トークンのリストを生成する
@@ -142,7 +191,6 @@ export function getConcealTokens(
             }
         }
     }
-    const step3SubLog = `regexCount: ${config.replacementRegexes.length}`;
 
     // 複数文字の下付き文字展開: _{012} -> ₀₁₂
     const subRegex = /_\{([0-9+\-=()<>aeoxjhklmnpstiruv]+)\}/g;
@@ -180,7 +228,7 @@ export function getConcealTokens(
     return sorted;
 }
 
-// 置換トークンを適用して最終的なテキストを生成する (テスト用)
+// 置換トークンを適用して最終的なテキストを生成する
 export function applyConcealTokensToText(text: string, tokens: ConcealToken[]): string {
     let result = '';
     let lastIndex = 0;

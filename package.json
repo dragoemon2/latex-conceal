@@ -2,7 +2,7 @@
   "name": "latex-conceal",
   "displayName": "LaTeX Conceal",
   "description": "",
-  "version": "0.1.3",
+  "version": "0.2.0",
   "publisher": "dragoemon",
   "icon": "images/icon1024x1024.png",
   "repository": {
@@ -52,18 +52,16 @@
           "type": "object",
           "description": "Custom replacement mappings that are merged with the default LaTeX-to-Unicode table.",
           "default": {
-            "\\Z": "ℤ",
-            "\\Q": "ℚ",
-            "\\R": "ℝ",
-            "\\C": "ℂ",
-            "\\N": "ℕ",
             "\\xrightarrow": "→",
             "\\xleftarrow": "←",
-            "\\Im": "Im",
-            "\\Re": "Re",
             "\\left": "",
             "\\right": ""
           }
+        },
+        "latex-conceal.loadReplacementsAutomatically": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically load replacement mappings from \\newcommand, \\renewcommand, and \\DeclareMathOperator definitions in the document."
         },
         "latex-conceal.revealBehavior": {
           "type": "string",

@@ -58,11 +58,13 @@ This extension contributes the following settings:
 	- Controls how much text is revealed when the cursor is inside concealed content.
 - `latex-conceal.replacementColor` (string, default: `editor.foreground`)
 	- Color for replacement glyphs. Accepts a theme color key (e.g. `editor.foreground`) or a CSS color string (e.g. `#c678dd`).
+- `latex-conceal.loadReplacementsAutomatically` (boolean, default: `true`)
+	- Automatically load custom replacements from the document (e.g., from `\newcommand` definitions). It is low priority to setting.json. Commands with arguments are not supported.
 
 ## Known Issues
 
 - Nested math environments are not handled correctly (e.g., `$ ... \text{ $ ... $ } ... $`).
-- Clicking the right side of a concealed glyph (e.g., `α`) may still place the caret on the left side of the original source token (e.g., `\alpha`). This is a limitation of decoration-based rendering.
+- Clicking the right side of a concealed glyph (e.g., `α`) may still place the caret on the left side of the original source token (e.g., `\alpha`). This is a limitation of decoration-based rendering. 
 
 ## Credits
 

@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { getConcealTokens, initializeConcealConfig } from './core/conceal';
+import { getConcealTokens, initializeConcealConfig, loadCustomReplacementsFromDocument } from './core/conceal';
 import { getAllMathEnvs } from './core/mathenv';
 import { getRevealRanges } from './core/reveal';
 import { AppConfig, ConcealToken } from './core/types';
@@ -117,7 +117,9 @@ function loadConfig(): AppConfig {
         reveal: {
             revealBehavior: config.get<'token' | 'environment' | 'line'>('revealBehavior', 'environment')
         },
-        replacementColor: config.get<string>('replacementColor', 'editor.foreground').trim()
+        replacementColor: config.get<string>('replacementColor', 'editor.foreground').trim(),
+        loadReplacementsAutomatically: config.get<boolean>('loadReplacementsAutomatically', true),
+        customReplacements: config.get<Record<string, string>>('customReplacements', {})
     };
 }
 
@@ -131,6 +133,17 @@ function triggerFullParse(editor: vscode.TextEditor) {
         concealCacheByDocument.set(documentKey, []);
         applyConceal(editor, [], []);
         return;
+    }
+
+    // ドキュメント内の \newcommand などから置換ルールを動的に読み込む（例: \newcommand{\foo}{\alpha} -> \foo -> α）
+    if(config.loadReplacementsAutomatically) {
+        const text = document.getText();
+        const customReplacementsFromDoc = loadCustomReplacementsFromDocument(text, config.conceal);
+        // カスタム置換ルールを既存のルールにマージ（setting.jsonのルールが優先される）
+        const customReplacements = { ...customReplacementsFromDoc, ...config.customReplacements };
+        // 置換ルールのコンフィグを再初期化して正規表現も再生成
+        const updatedConcealConfig = initializeConcealConfig(customReplacements);
+        config.conceal = updatedConcealConfig;
     }
 
     const text = document.getText();
