@@ -8,6 +8,22 @@ Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how 
 
 - No unreleased changes yet.
 
+
+## [0.2.3] - 2026-04-26
+
+### Fixed
+
+- Fixed an issue that `latex-conceal.enable` setting does not show up in the status bar toggle.
+
+## Changed
+
+- Changed the status bar appearance on OFF state.
+
+## [0.2.2] - 2026-03-25
+
+### Added
+- Added extension description
+
 ## [0.2.1] - 2026-03-25
 
 ### Added

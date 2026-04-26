@@ -15,9 +15,17 @@ const concealCacheByDocument = new Map<string, ConcealToken[]>();
 export function activate(context: vscode.ExtensionContext) {
     console.log('LaTeX Conceal is now active!');
 
+    // 設定の初期化とスタイルの更新
+    currentConfig = loadConfig();
+    updateDecorationStyle(currentConfig);
+
     // ステータスバーにON/OFFトグルを追加
     const statusBarToggle = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
-    statusBarToggle.text = '$(eye) Conceal: ON';
+    if (currentConfig.enable) {
+        statusBarToggle.text = '$(eye) Conceal: ON';
+    } else {
+        statusBarToggle.text = '$(eye-closed) Conceal: OFF';
+    }
     statusBarToggle.tooltip = 'Toggle LaTeX Conceal (UI only)';
     statusBarToggle.command = 'latex-conceal.toggle';
     statusBarToggle.show();
@@ -29,16 +37,16 @@ export function activate(context: vscode.ExtensionContext) {
                 return;
             }
             currentConfig.enable = !currentConfig.enable;
-            statusBarToggle.text = `$(eye) Conceal: ${currentConfig.enable ? 'ON' : 'OFF'}`;
+            if (currentConfig.enable) {
+                statusBarToggle.text = '$(eye) Conceal: ON';
+            } else {
+                statusBarToggle.text = '$(eye-closed) Conceal: OFF';
+            }
             if (vscode.window.activeTextEditor) {
                 triggerFullParse(vscode.window.activeTextEditor);
             }
         })
     );
-
-    // 設定の初期化とスタイルの更新
-    currentConfig = loadConfig();
-    updateDecorationStyle(currentConfig);
 
     // 最初のエディタがあれば全文をパースしてキャッシュを構築
     if (vscode.window.activeTextEditor) {

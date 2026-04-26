@@ -2,7 +2,7 @@
 
 # ✨ LaTeX Conceal
 
-**LaTeX Conceal** は、LaTeX 数式コマンドを**元のソースを変更せず**に、エディタ上で **Unicode文字**として表示します。（例: `\alpha` を `α` として表示）
+[LaTeX Conceal](https://marketplace.visualstudio.com/items?itemName=dragoemon.latex-conceal) は、LaTeX 数式コマンドを**元のソースを変更せず**に、エディタ上で **Unicode文字**として表示します。（例: `\alpha` を `α` として表示）
 
 ## 🖼️ Example
 
@@ -52,7 +52,7 @@
 この拡張機能は以下の設定を提供します:
 
 - `latex-conceal.enable`（boolean, default: `true`）
-	- conceal 描画の有効/無効を切り替えます。
+	- 起動時の conceal 描画の有効/無効を切り替えます。
 - `latex-conceal.targetLanguageIds`（string array, default: `['latex', 'tex', 'markdown']`）
 	- conceal 描画を適用する言語 ID を指定します。
 - `latex-conceal.customReplacements`（object）

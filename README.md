@@ -2,7 +2,7 @@
 
 # ✨ LaTeX Conceal
 
-**LaTeX Conceal** replaces common LaTeX math commands with **Unicode glyphs** directly in the editor while **keeping your original source unchanged.** (e.g., `\alpha` is displayed as `α`)
+[LaTeX Conceal](https://marketplace.visualstudio.com/items?itemName=dragoemon.latex-conceal) replaces common LaTeX math commands with **Unicode glyphs** directly in the editor while **keeping your original source unchanged.** (e.g., `\alpha` is displayed as `α`)
 
 ## 🖼️ Example
 
@@ -53,7 +53,7 @@ Conceal is applied inside:
 This extension contributes the following settings:
 
 - `latex-conceal.enable` (boolean, default: `true`)
-	- Enables or disables conceal rendering.
+	- Enables or disables conceal rendering when activated.
 - `latex-conceal.targetLanguageIds` (string array, default: `['latex', 'tex', 'markdown']`)
 	- Language IDs where conceal rendering is applied 
 - `latex-conceal.customReplacements` (object)
